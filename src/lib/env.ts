@@ -17,9 +17,10 @@ export const DB_PATH = process.env.DB_PATH || "./data/app.db";
 
 export const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
-// 支付渠道标识：生产部署必须设置真实渠道（如 stripe），
-// mock 仅限本地演示；pay 接口会在生产环境 fail-closed 校验。
-export const PAYMENT_PROVIDER = process.env.PAYMENT_PROVIDER || "mock";
+// 支付渠道标识：**未设置 = 未接入支付**（生产环境支付接口将 fail-closed 403）。
+// 仅当显式设置 PAYMENT_PROVIDER=mock 时，生产环境才放行模拟支付（本地演示用）。
+// 注意不要写成 `|| "mock"` 兜底——那会让"漏配"和"显式 mock"无法区分。
+export const PAYMENT_PROVIDER = process.env.PAYMENT_PROVIDER || "";
 
 // 演示登录：生产环境必须显式 AUTH_DEMO_LOGIN=1 才开启（避免忘配 client id 时全站共用演示账号）；
 // 开发环境未配 client id 时自动开启，便于先跑通全站流程。

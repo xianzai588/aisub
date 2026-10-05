@@ -1,7 +1,10 @@
 # AISub · AI 订阅自助平台（脚手架）
 
-参考 WildAI（bewild.ai）的订阅站形态、但改用 **官方 Sign in with ChatGPT（OAuth 2.0 + PKCE）** 做登录的 Next.js 演示项目。
-用户在 auth.openai.com 亲自登录授权，平台只拿到**经过验签的身份信息**（sub / email / name / 头像），全程不收集账号密码，也不需要用户粘贴 `/api/auth/session` 的 JSON（那段 JSON 里的 accessToken 等于整个账号的网页端操作权限，让用户交出它对双方都是风险）。
+参考 WildAI（bewild.ai）的订阅站形态、但登录改用 **官方 Sign in with ChatGPT（OAuth 2.0 + PKCE）** 的 Next.js 演示项目。
+
+**登录环节**：用户在 auth.openai.com 亲自登录授权，平台不经手账号密码，只保留经过验签的身份信息（sub / email / name / 头像）。
+
+**履约环节**：代订阅需要在客户账号内操作，因此订单支付后，用户需按商品指引提交对应平台的账号凭证（如 ChatGPT 的 `/api/auth/session` JSON、Claude 的 sessionKey Cookie）。平台的处理原则：AES-256-GCM 加密存储、仅本单履约使用、订单进入终态自动删除——与"收账号密码 / 长期共享会话 / 用完不删"的老式做法划清界限。
 
 ## 功能一览
 
@@ -98,7 +101,8 @@ OAuth 身份登录**不可能**替用户改订阅——这正是它安全的原�
 
 - 生产必须换 `SESSION_SECRET` 与 `ADMIN_PASSWORD`，并全程 HTTPS（Cookie 已按 production 加 `Secure`）。
 - OAuth 事务（verifier/nonce）当前存进程内存，生产放 Redis/DB 并绑定浏览器会话。
-- 平台不保存任何 OpenAI 凭证；`id_token` 验签后只保留 claims。
+- 平台不保存 OpenAI 登录凭证（id_token 验签后即弃）；用户为履约提交的平台账号凭证 AES-256-GCM 加密存储，订单进入完成/取消/退款终态时自动删除。
+- 管理端解密查看会向管理员浏览器返回凭证完整原文（复制导入履约的必要动作）：请保证管理员设备与浏览器扩展安全，后续可增加查看时二次验证。
 - 代订阅业务本身违反 OpenAI/Anthropic 服务条款，存在封号与支付拒付风险，用户账号承担主要后果；请自行评估合规性并明示用户。
 - 官方 devkit（`openai/sign-in-with-chatgpt-devkit`）为 **Noncommercial** 许可，商用站点不要直接复用其代码；本项目按官方 OIDC 文档独立实现（`src/lib/oidc.ts`）。
 - 本项目以 **AGPL-3.0** 开源：他人（含你的竞争者）用这份代码开站或二次开发后对外提供服务，必须同样开源其修改；你作为版权人不受限，可自行商用或另行授权。

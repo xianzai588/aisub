@@ -329,13 +329,6 @@ export function updateOrderStatus(
     now(), orderId
   );
 
-  // 订单完成即销毁客户凭证（最小保留原则）
-  if (next === "completed") {
-    db.prepare(
-      "UPDATE orders SET credential_enc = '', credential_cleared_at = ? WHERE id = ? AND credential_enc != ''"
-    ).run(now(), orderId);
-  }
-
   // 凭证生命周期：进入任何终态（完成/取消/退款）都立即销毁，最小保留
   if (next === "completed" || next === "cancelled" || next === "refunded") {
     db.prepare(

@@ -28,9 +28,13 @@ export interface OAuthTx {
   expiresAt: number;
 }
 
-// 事务仅存服务端内存（重启即失效，10 分钟过期）。
+// 事务仅存服务端（重启即失效，10 分钟过期）。
+// Next 生产构建中 signin 与 callback 是独立模块实例，必须挂 globalThis 共享。
 // 生产请放 Redis/DB，并把 verifier 与浏览器会话绑定。
-const txStore = new Map<string, OAuthTx>();
+const txStore = (() => {
+  const g = globalThis as unknown as { __siwcOAuthTxs?: Map<string, OAuthTx> };
+  return (g.__siwcOAuthTxs ??= new Map<string, OAuthTx>());
+})();
 const TX_TTL_MS = 10 * 60 * 1000;
 
 export function createTx(ref?: string): { id: string; tx: OAuthTx } {

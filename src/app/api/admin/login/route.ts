@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminCookieValue, checkAdminPassword } from "@/lib/session";
+import { createAdminSession, checkAdminPassword } from "@/lib/session";
 import { APP_URL, ADMIN_PASSWORD, IS_PRODUCTION } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
@@ -35,15 +35,16 @@ export async function POST(req: NextRequest) {
   }
   fails.delete(ip);
 
+  const { token, maxAgeSeconds } = createAdminSession();
   const res = NextResponse.redirect(`${APP_URL}/admin`, 303);
   res.cookies.set({
     name: "siwc_admin",
-    value: adminCookieValue(),
+    value: token,
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 8,
+    maxAge: maxAgeSeconds,
   });
   return res;
 }
