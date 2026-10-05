@@ -7,9 +7,11 @@ import { useRouter } from "next/navigation";
 export default function CredentialForm({
   orderId,
   submittedAt,
+  placeholder = "粘贴账号凭证…",
 }: {
   orderId: string;
   submittedAt: string | null;
+  placeholder?: string;
 }) {
   const router = useRouter();
   const [value, setValue] = useState("");
@@ -53,7 +55,7 @@ export default function CredentialForm({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={5}
-        placeholder="在这里粘贴从 https://chatgpt.com/api/auth/session 复制的完整 JSON…"
+        placeholder={placeholder}
         className="w-full rounded-xl border border-zinc-300 bg-white p-3 font-mono text-xs"
       />
       <button

@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { createHash } from "node:crypto";
 import type { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { SESSION_SECRET, ADMIN_PASSWORD } from "./env";
+import { SESSION_SECRET, ADMIN_PASSWORD, IS_PRODUCTION } from "./env";
 import { getUserById, type User } from "./db";
 
 const secretKey = new TextEncoder().encode(SESSION_SECRET);
@@ -10,7 +10,18 @@ const SESSION_COOKIE = "siwc_session";
 const ADMIN_COOKIE = "siwc_admin";
 const EIGHT_HOURS = 60 * 60 * 8;
 
+// fail-closed：生产环境使用默认密钥时直接拒绝签发/校验会话，
+// 避免"忘配密钥 → 任何人可伪造 session"的部署事故。
+function ensureSafeSecret(): void {
+  if (IS_PRODUCTION && SESSION_SECRET.startsWith("dev-only")) {
+    throw new Error(
+      "SESSION_SECRET 仍为默认开发值：生产环境必须在环境变量中设置随机密钥后重启"
+    );
+  }
+}
+
 export async function signSessionToken(userId: string): Promise<string> {
+  ensureSafeSecret();
   return new SignJWT({ uid: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -36,6 +47,7 @@ export async function getCurrentUser(): Promise<User | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
+  ensureSafeSecret();
   try {
     const { payload } = await jwtVerify(token, secretKey);
     const uid = typeof payload.uid === "string" ? payload.uid : "";

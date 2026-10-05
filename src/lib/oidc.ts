@@ -85,12 +85,15 @@ export async function exchangeCode(code: string, codeVerifier: string): Promise<
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded",
   };
-  // 文档要求：confidential client 的 secret 只能放 HTTP Basic 头，不能进表单
+  // 文档要求：confidential client 的 secret 只能放 HTTP Basic 头，不能进表单。
+  // Basic 凭证按官方样例用 form-encoding 编码 client_id/secret。
+  const formEncode = (v: string) => new URLSearchParams({ v }).toString().slice(2);
   if (OPENAI_CLIENT_SECRET) {
     const basic = Buffer.from(
-      `${encodeURIComponent(OPENAI_CLIENT_ID)}:${encodeURIComponent(OPENAI_CLIENT_SECRET)}`
+      `${formEncode(OPENAI_CLIENT_ID)}:${formEncode(OPENAI_CLIENT_SECRET)}`
     ).toString("base64");
     headers["Authorization"] = `Basic ${basic}`;
+    body.set("client_id", OPENAI_CLIENT_ID); // 官方样例：body 仍包含 client_id
   } else {
     body.set("client_id", OPENAI_CLIENT_ID); // public client（纯 PKCE）
   }
@@ -109,7 +112,11 @@ export async function verifyIdToken(idToken: string, expectedNonce: string) {
     issuer: OIDC.issuer,
     audience: OPENAI_CLIENT_ID,
     clockTolerance: 5,
+    requiredClaims: ["sub", "exp", "iat"], // 对齐官方样例：关键声明必须存在
   });
+  if (typeof payload.sub !== "string" || !payload.sub) {
+    throw new Error("invalid subject");
+  }
   if (!payload.nonce || payload.nonce !== expectedNonce) {
     throw new Error("nonce mismatch");
   }

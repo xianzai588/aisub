@@ -32,6 +32,38 @@ export default async function OrderDetailPage({
   const flowIndex = FLOW.indexOf(order.status as (typeof FLOW)[number]);
   const abnormal = order.status === "cancelled" || order.status === "refunded";
 
+  // 凭证指引按商品平台区分：Claude 收 Claude 的 Cookie，ChatGPT 收 session JSON，
+  // 自定义商品给通用说明（具体以商品描述为准）
+  const guide = order.plan_key.startsWith("claude")
+    ? {
+        steps: [
+          <>1. 在本浏览器登录 <a className="text-indigo-600 hover:underline" href="https://claude.ai" target="_blank" rel="noreferrer">claude.ai</a></>,
+          <>2. 按 F12 打开开发者工具 → Application（应用）→ Cookies → <span className="break-all">https://claude.ai</span></>,
+          <>3. 找到 <span className="font-mono">sessionKey</span>（以 sk-ant-sid01- 开头），完整复制粘贴到下方提交</>,
+        ],
+        risk: "该 Cookie 等同于你 Claude 账号的登录态，仅用于本次开通。开通完成后建议在 Claude 设置中登出所有会话，使旧凭证失效。",
+        placeholder: "粘贴 sessionKey 完整值（sk-ant-sid01-…）",
+      }
+    : order.plan_key.startsWith("custom-")
+      ? {
+          steps: [
+            <>1. 按商品说明准备对应平台的账号凭证（Cookie 或 session 信息）</>,
+            <>2. 如不确定获取方式，先联系客服确认，再操作</>,
+            <>3. 粘贴到下方提交；提交后可在订单完成前重新提交覆盖</>,
+          ],
+          risk: "凭证等同于对应账号的操作权限，仅用于本次开通。完成后建议登出对应平台所有会话，使旧凭证失效。",
+          placeholder: "粘贴对应平台的账号凭证（Cookie 或 session 信息）…",
+        }
+      : {
+          steps: [
+            <>1. 在本浏览器登录 <a className="text-indigo-600 hover:underline" href="https://chatgpt.com" target="_blank" rel="noreferrer">chatgpt.com</a></>,
+            <>2. 打开 <a className="break-all text-indigo-600 hover:underline" href="https://chatgpt.com/api/auth/session" target="_blank" rel="noreferrer">chatgpt.com/api/auth/session</a></>,
+            <>3. 页面内全选（Ctrl/Cmd+A）复制（Ctrl/Cmd+C），粘贴到下方提交</>,
+          ],
+          risk: "这段 JSON 里的 accessToken 等同于账号网页端的操作权限，仅用于本次开通。开通完成后建议在 ChatGPT 设置中登出所有设备，使旧凭证失效。",
+          placeholder: "在这里粘贴从 https://chatgpt.com/api/auth/session 复制的完整 JSON…",
+        };
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
@@ -100,14 +132,17 @@ export default async function OrderDetailPage({
           ) : (
             <div className="mt-4">
               <ol className="mb-4 space-y-1.5 text-sm leading-6 text-zinc-600">
-                <li>1. 在本浏览器登录 <a className="text-indigo-600 hover:underline" href="https://chatgpt.com" target="_blank" rel="noreferrer">chatgpt.com</a></li>
-                <li>2. 打开 <a className="break-all text-indigo-600 hover:underline" href="https://chatgpt.com/api/auth/session" target="_blank" rel="noreferrer">chatgpt.com/api/auth/session</a></li>
-                <li>3. 页面内全选（Ctrl/Cmd+A）复制（Ctrl/Cmd+C），粘贴到下方提交</li>
+                {guide.steps.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
               </ol>
-              <CredentialForm orderId={order.id} submittedAt={order.credential_submitted_at} />
+              <CredentialForm
+                orderId={order.id}
+                submittedAt={order.credential_submitted_at}
+                placeholder={guide.placeholder}
+              />
               <p className="mt-3 text-xs leading-5 text-rose-500">
-                风险提示：这段 JSON 里的 accessToken 等同于账号网页端的操作权限，仅用于本次开通。
-                开通完成后建议在 ChatGPT 设置中登出所有设备，使旧凭证失效。
+                风险提示：{guide.risk}
               </p>
             </div>
           )}

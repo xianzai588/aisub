@@ -14,9 +14,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mins?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, mins } = await searchParams;
   const user = await getCurrentUser();
 
   if (!(await isAdmin())) {
@@ -28,7 +28,11 @@ export default async function AdminPage({
         </p>
         {error && (
           <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
-            口令错误，请重试。
+            {error === "rate"
+              ? `失败次数过多，请约 ${mins ?? "15"} 分钟后再试。`
+              : error === "default_password"
+                ? "ADMIN_PASSWORD 仍为默认值 admin123，生产环境已拒绝登录；请设置环境变量后重启服务。"
+                : "口令错误，请重试。"}
           </p>
         )}
         <form action="/api/admin/login" method="post" className="mt-6 space-y-3">

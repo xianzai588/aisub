@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { exchangeCode, takeTx, verifyIdToken } from "@/lib/oidc";
 import { upsertUserBySub } from "@/lib/db";
 import { setSessionCookie } from "@/lib/session";
-import { APP_URL } from "@/lib/env";
+import { APP_URL, OPENAI_CLIENT_ID } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
 
     const user = upsertUserBySub({
       provider: "openai",
-      sub: String(claims.sub),
+      // 官方建议：外部身份至少绑定 issuer/clientId/subject，
+      // 同一 sub 在不同 client 下视为不同身份
+      sub: `${OPENAI_CLIENT_ID}:${String(claims.sub)}`,
       email: typeof claims.email === "string" ? claims.email : "",
       name: typeof claims.name === "string" ? claims.name : "",
       avatarUrl: typeof claims.picture === "string" ? claims.picture : "",

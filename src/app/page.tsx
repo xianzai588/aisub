@@ -39,8 +39,9 @@ export default async function Home({
           <span className="text-indigo-600">自助开通</span>
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-zinc-500">
-          用官方 Sign in with ChatGPT 登录，选套餐、付款、等待开通。
-          平台全程不接触你的账号密码，也不需要粘贴 session JSON。
+          用官方 Sign in with ChatGPT 登录本站，全程不经手你的账号密码。
+          下单支付后，按商品指引提交对应平台的账号凭证，由运营人工开通——
+          凭证加密存储、仅用于本单履约、完成后自动删除。
         </p>
         <div id="login" className="mt-8">
           <LoginOptions ref={ref} />
@@ -100,29 +101,34 @@ export default async function Home({
         </div>
       </section>
 
-      {/* 安全对比 */}
+      {/* 安全说明 */}
       <section className="rounded-2xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-xl font-semibold">为什么不让用户「复制 session JSON」？</h2>
+        <h2 className="text-xl font-semibold">账号安全是怎么处理的？</h2>
+        <p className="mt-2 text-sm text-zinc-500">
+          登录和履约是两件事，分开处理、各自最小化：
+        </p>
         <div className="mt-5 grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-5">
-            <div className="font-medium text-rose-700">✗ 老式做法：粘贴 /api/auth/session</div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
+            <div className="font-medium text-emerald-700">✓ 登录：官方 OAuth + PKCE</div>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-zinc-600">
-              <li>· accessToken ≈ 整个账号的网页端操作权限</li>
-              <li>· 平台服务器必须保存用户有效凭证，泄露即账号泄露</li>
-              <li>· 用户无法最小化授权，也无法随时撤销</li>
-              <li>· 平台侧合规与信任成本极高</li>
+              <li>· 在 auth.openai.com 亲自登录并授权，平台不经手账号密码</li>
+              <li>· 平台只拿到经过验签的身份信息（sub / email / name）</li>
+              <li>· 不保存任何 OpenAI 登录凭证，id_token 验签后即弃</li>
             </ul>
           </div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
-            <div className="font-medium text-emerald-700">✓ 本项目：官方 OAuth + PKCE</div>
+          <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-5">
+            <div className="font-medium text-sky-700">✓ 履约：凭证单独提交、用完即删</div>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-zinc-600">
-              <li>· 用户在 auth.openai.com 亲自登录并授权</li>
-              <li>· 平台只拿到经过验证的身份信息（sub/email/name）</li>
-              <li>· 不保存任何 ChatGPT 凭证，id_token 验签后即弃</li>
-              <li>· scope 最小化，符合 OpenAI 官方集成规范</li>
+              <li>· 支付后按商品指引提交对应平台凭证（不是账号密码）</li>
+              <li>· AES-256-GCM 加密存储，仅运营为你的订单履约时解密</li>
+              <li>· 订单完成 / 取消 / 退款自动删除；也可随时要求手动删除</li>
             </ul>
           </div>
         </div>
+        <p className="mt-4 text-xs leading-5 text-zinc-400">
+          老式代充要求账号密码、长期共享会话、用完不删——这些我们都不做。
+          提交凭证前请确认你信任本站；也可以选择自行开通。
+        </p>
       </section>
     </div>
   );

@@ -98,9 +98,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
         <footer className="border-t border-zinc-200 bg-white">
           <div className="mx-auto max-w-5xl px-4 py-6 text-xs leading-5 text-zinc-400">
-            本项目为脚手架演示：价格与品牌均为占位，订单履约为人工流程占位。
-            登录采用官方 Sign in with ChatGPT（OAuth 2.0 + PKCE），平台不收集账号密码与
-            session JSON。请遵守 OpenAI / Anthropic 的服务条款与当地法规。
+            本项目为脚手架演示。登录采用官方 Sign in with ChatGPT（OAuth 2.0 + PKCE），不经手账号密码；
+            开通履约需按商品指引提交对应平台账号凭证，凭证加密存储、仅用于本单履约、
+            订单完成/取消/退款时自动删除。请遵守 OpenAI / Anthropic 的服务条款与当地法规。
           </div>
         </footer>
       </body>

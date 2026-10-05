@@ -336,6 +336,18 @@ export function updateOrderStatus(
     ).run(now(), orderId);
   }
 
+  // 凭证生命周期：进入任何终态（完成/取消/退款）都立即销毁，最小保留
+  if (next === "completed" || next === "cancelled" || next === "refunded") {
+    db.prepare(
+      "UPDATE orders SET credential_enc = '', credential_cleared_at = ? WHERE id = ? AND credential_enc != ''"
+    ).run(now(), orderId);
+  }
+
+  // 充值单完成 → 真实入账余额
+  if (next === "completed" && order.kind === "topup") {
+    addBalance(order.user_id, order.amount_cents);
+  }
+
   // 首个完成的订阅单 → 给邀请人发一次性奖励（直接以 reward 订单入余额）
   if (next === "completed" && order.kind === "subscription") {
     const buyer = getUserById(order.user_id);

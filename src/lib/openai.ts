@@ -84,6 +84,14 @@ export async function verifyCredential(raw: string): Promise<VerifyResult> {
     return checkAccounts(trimmed);
   }
 
+  // Claude 凭证（sessionKey）无法走 ChatGPT 接口验证，明确告知走人工
+  if (/^sk-ant-/.test(trimmed)) {
+    return {
+      ok: false,
+      hint: "Claude 凭证（sk-ant-…）：暂不支持在线验证，请在浏览器导入后人工核对",
+    };
+  }
+
   return {
     ok: false,
     hint: "无法识别凭证类型：请提交 /api/auth/session 的完整 JSON 或 __Secure-next-auth.session-token Cookie",

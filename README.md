@@ -9,7 +9,7 @@
 | --- | --- |
 | 登录 | Sign in with ChatGPT（Authorization Code + PKCE，`openid profile email`）；未配置 client id 时可用「演示登录」跑通全站 |
 | 订阅下单 | 套餐目录（`src/lib/plans.ts` 占位数据）→ 创建订单 → 支付 |
-| 支付 | 内置**模拟支付**（直接把订单标记为已支付）；接真实支付时替换 `src/app/api/orders/[id]/pay/route.ts` 为收银台跳转 + webhook 验签 |
+| 支付 | 内置**模拟支付**（直接把订单标记为已支付）；**生产 fail-closed**：仅当显式设置 `PAYMENT_PROVIDER=mock` 才启用，否则 403 拒绝——防止忘接真实支付时用户免费下单。接真实支付时替换 `src/app/api/orders/[id]/pay/route.ts` 为收银台跳转 + webhook 验签 |
 | 履约流水线 | 订单状态机 `pending → paid → fulfilling → completed`（含 cancelled / refunded），运营在 `/admin` 用口令登录后推进 |
 | 余额 | 充值订单、余额展示、订单抵扣位（预留） |
 | 邀请 | 每用户专属邀请码/链接；被邀请人首单完成 → 邀请人自动入账 ¥10 奖励（reward 订单） |
@@ -77,7 +77,7 @@ OAuth 身份登录**不可能**替用户改订阅——这正是它安全的原�
 2. 状态推进（`/admin`）与用户可见的进度；
 3. 留痕（payment_ref、note）。
 
-**凭证链路（人工履约）**：客户支付后，在订单页提交 ChatGPT 凭证（`chatgpt.com/api/auth/session` 的完整 JSON，或 `__Secure-next-auth.session-token` Cookie）→ AES-256-GCM 加密落库（密钥 `CREDENTIAL_SECRET`，解密只发生在服务端）→ 后台「凭证」面板按需解密（邮箱/套餐/过期时间/accessToken 概要 + 完整原文复制）→「验证凭证」调 OpenAI accounts/check 核对真伪与当前套餐（Cookie 会先换 session；401/403/429 给出可读提示）→ 运营在浏览器导入 Cookie 或用 token 核对后人工完成开通 →「标记已使用」→ 订单标记 completed 时**凭证自动删除**（`credential_cleared_at` 由状态机触发）。付款环节（卡 + 3DS）无法也不应自动化。
+**凭证链路（人工履约）**：客户支付后，在订单页提交 ChatGPT 凭证（`chatgpt.com/api/auth/session` 的完整 JSON，或 `__Secure-next-auth.session-token` Cookie）→ AES-256-GCM 加密落库（密钥 `CREDENTIAL_SECRET`，解密只发生在服务端）→ 后台「凭证」面板按需解密（邮箱/套餐/过期时间/accessToken 概要 + 完整原文复制）→「验证凭证」调 OpenAI accounts/check 核对真伪与当前套餐（Cookie 会先换 session；401/403/429 给出可读提示）→ 运营在浏览器导入 Cookie 或用 token 核对后人工完成开通 →「标记已使用」→ 订单进入完成/取消/退款终态时**凭证自动删除**（`credential_cleared_at` 由状态机触发）。付款环节（卡 + 3DS）无法也不应自动化。
 
 如果想把「用用户的 ChatGPT plan 跑 AI 请求」做成产品能力（Codex 类应用的模式），走官方
 [token-sharing / 开源应用授权](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
@@ -92,6 +92,9 @@ OAuth 身份登录**不可能**替用户改订阅——这正是它安全的原�
 3. 对账脚本用 `payment_ref` 关联渠道流水。
 
 ## 安全与合规注意
+
+- **fail-closed 三件套**：生产环境（`NODE_ENV=production`）默认拒绝——未显式 `PAYMENT_PROVIDER=mock` 时的模拟支付（403）、未显式 `AUTH_DEMO_LOGIN=1` 时的演示登录、默认 `ADMIN_PASSWORD` 的后台登录、默认 `SESSION_SECRET` 的会话签发。
+- 后台登录带单 IP 失败限速（5 次 / 锁 15 分钟）；生产建议再加 MFA 与操作审计。
 
 - 生产必须换 `SESSION_SECRET` 与 `ADMIN_PASSWORD`，并全程 HTTPS（Cookie 已按 production 加 `Secure`）。
 - OAuth 事务（verifier/nonce）当前存进程内存，生产放 Redis/DB 并绑定浏览器会话。
